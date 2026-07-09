@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Pichau\\\\Desktop\\\\fieldcall\\\\app\\\\api\\\\share\\\\[id]\")",
+      "Bash(npm uninstall *)",
+      "Bash(npm audit *)",
+      "Bash(echo \"TSC_EXIT:$?\")",
+      "Bash(npm run *)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Pichau\\\\Desktop\\\\fieldcall\\\\app\\\\r\\\\[id]\")",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(git ls-remote *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Pichau\\Desktop\\fieldcall\\app\\api\\share",
+      "c:\\Users\\Pichau\\Desktop\\fieldcall\\app\\r"
+    ]
+  }
+}
