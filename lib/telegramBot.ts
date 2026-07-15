@@ -323,13 +323,29 @@ const globalForBot = globalThis as unknown as { mylosBotLaunched?: boolean }
 export function startBot(): void {
   if (globalForBot.mylosBotLaunched) return
   globalForBot.mylosBotLaunched = true
+
+  // bot.launch() rejecting (network hiccup, invalid token, ...) would
+  // otherwise be an unhandled promise rejection — fatal to the whole
+  // Node process on versions that crash on those by default.
   bot.launch({
     allowedUpdates: ['message', 'callback_query'],
-  })
+  }).catch(e => console.error('[MYLOS Bot] launch() failed:', e.message))
   console.log('[MYLOS Bot] Started @myloswc_bot')
 
-  process.once('SIGINT', () => bot.stop('SIGINT'))
-  process.once('SIGTERM', () => bot.stop('SIGTERM'))
+  // Telegraf's stop() throws synchronously ("Bot is not running!") if
+  // called before launch() has actually finished connecting, or if it's
+  // already stopped — and an exception thrown inside a signal handler
+  // is uncaught, crashing the process outright. Swallow it: on shutdown
+  // we don't care whether the poll connection was cleanly closed.
+  const safeStop = (signal: string) => {
+    try {
+      bot.stop(signal)
+    } catch (e: any) {
+      console.error('[MYLOS Bot] stop() failed:', e.message)
+    }
+  }
+  process.once('SIGINT', () => safeStop('SIGINT'))
+  process.once('SIGTERM', () => safeStop('SIGTERM'))
 }
 
 export { bot }

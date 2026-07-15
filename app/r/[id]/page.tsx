@@ -1,5 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { decodeShareToken } from '@/lib/shareToken'
+import { getScore, getMockScore } from '@/lib/txline'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -7,23 +9,13 @@ interface Props {
 }
 
 async function getShareData(id: string) {
-  try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const res = await fetch(`${base}/api/share/${id}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
-  }
+  return decodeShareToken(id)
 }
 
 async function getCurrentScore(fixtureId: number) {
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const res = await fetch(`${base}/api/match/${fixtureId}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data.score || null
+    const score = await getScore(fixtureId)
+    return score || getMockScore(fixtureId)
   } catch {
     return null
   }
@@ -118,15 +110,14 @@ export default async function SharePage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* Image */}
-        {response.imageBase64 && (
-          <div className="rounded-xl overflow-hidden border border-border mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`data:${response.imageMimeType};base64,${response.imageBase64}`}
-              alt="Generated image"
-              className="w-full"
-            />
+        {/* Image generation answers aren't shareable via this link today —
+            see lib/shareToken.ts for why — so just say so instead of
+            silently dropping it. */}
+        {share.hadImage && (
+          <div className="rounded-xl border border-border bg-card/60 px-4 py-3 mb-4">
+            <p className="text-xs text-muted">
+              This answer included a generated image, which isn&apos;t shown on this shared link.
+            </p>
           </div>
         )}
 

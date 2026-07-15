@@ -1,21 +1,20 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Sweepstake } from '@/lib/sweepstake'
+import { getSweepstakeEntry } from '@/lib/sweepstakeStore'
 import SweepstakeJoinGate from '@/components/SweepstakeJoinGate'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
+// Reads the in-memory store directly instead of fetching this same app's
+// own /api/sweepstake/[id] over HTTP — a self-fetch needs a real base URL
+// (NEXT_PUBLIC_APP_URL), and defaulting to localhost:3000 when that's
+// unset silently 404s the whole page in any environment where nothing
+// is listening on localhost (e.g. every serverless deployment).
 async function getSweepstakeData(id: string): Promise<Sweepstake | null> {
-  try {
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const res = await fetch(`${base}/api/sweepstake/${id}`, { cache: 'no-store' })
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
-  }
+  return getSweepstakeEntry(id)
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
