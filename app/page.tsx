@@ -255,7 +255,8 @@ export default function Home() {
       }
       saveChatSession(session)
       setChatSessions(getChatSessions())
-    } catch {
+    } catch (e: any) {
+      console.error('[Chat] Failed:', e.message)
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
