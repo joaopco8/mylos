@@ -8,13 +8,58 @@ import { detectIntent, requiresFixture } from './intent'
 import { AgentResponse, CostItem } from '@/types'
 import { nanoid } from 'nanoid'
 
-const SYSTEM_INSTRUCTION = `You are FieldCall, an expert assistant for the
+// Shared by the "general question but a fixture is selected" override
+// below — fetches real TxLINE data and returns both the prompt context
+// and the fixture summary (needed for the UI's live badge + verify button,
+// so a general question doesn't lose those just because it skipped the
+// main requiresFixture branch).
+async function fetchFixtureContext(
+  fixtureId: number,
+  costs: CostItem[],
+  sources: string[]
+): Promise<{ contextData: string; fixture: AgentResponse['fixture'] }> {
+  const [score, odds] = await Promise.all([
+    getScore(fixtureId),
+    getOdds(fixtureId),
+  ])
+  const finalScore = score || getMockScore(fixtureId)
+  const finalOdds = odds || getMockOdds(fixtureId)
+
+  costs.push({ service: 'TxLINE Score Data', amount: 0.008 })
+  if (finalOdds) {
+    costs.push({ service: 'TxLINE Odds Data', amount: 0.008 })
+  }
+  sources.push('TxLINE')
+
+  const contextData = `
+MATCH DATA (TxLINE):
+- Match: ${finalScore.homeTeam} ${finalScore.homeScore} x ${finalScore.awayScore} ${finalScore.awayTeam}
+- Status: ${finalScore.status}
+- Half-time score: ${finalScore.halfTimeHomeScore ?? '-'} x ${finalScore.halfTimeAwayScore ?? '-'}
+ODDS: home=${finalOdds?.homeWin} draw=${finalOdds?.draw} away=${finalOdds?.awayWin}
+`
+
+  return {
+    contextData,
+    fixture: {
+      fixtureId,
+      homeTeam: finalScore.homeTeam,
+      awayTeam: finalScore.awayTeam,
+      homeScore: finalScore.homeScore,
+      awayScore: finalScore.awayScore,
+      status: finalScore.status,
+      minute: finalScore.minute,
+    },
+  }
+}
+
+const SYSTEM_INSTRUCTION = `You are Mylos, an expert assistant for the
 2026 World Cup. You have access to real-time data via TxLINE.
 
 Rules:
-- ALWAYS answer in English
+- ALWAYS answer in English, regardless of the language the question was asked in
 - Be direct and concise (max 3 paragraphs)
-- Use relevant emojis (⚽🏆📊)
+- Do not use emojis
 - When you have live data, cite the exact numbers
 - For predictions, base your answer on the odds and stats provided
 - Never make up data — use only what was provided
@@ -50,14 +95,13 @@ export async function processQuestion(params: {
       costs.push({
         service: 'Nano Banana (Image Gen)',
         amount: 0.10,
-        emoji: '🎨'
       })
       sources.push('Google Gemini Image')
 
       const totalCost = costs.reduce((s, c) => s + c.amount, 0)
       return {
-        answer: `Here's your image! 🎨 Generated with Nano Banana
-          (Google Gemini) just for you. ⚽🏆`,
+        answer: `Here's your image! Generated with Nano Banana
+          (Google Gemini) just for you.`,
         costs,
         totalCost,
         isReal: false,
@@ -74,8 +118,8 @@ export async function processQuestion(params: {
           Respond creatively in text about the requested subject.`,
         systemInstruction: SYSTEM_INSTRUCTION,
       })
-      costs.push({ service: 'Gemini 2.5 Flash', amount: 0.003, emoji: '🤖' })
-      sources.push('Gemini 2.5 Flash')
+      costs.push({ service: 'Groq Llama 3.3', amount: 0.001 })
+      sources.push('Groq Llama 3.3')
       return {
         answer: text,
         costs,
@@ -102,7 +146,6 @@ export async function processQuestion(params: {
       costs.push({
         service: 'TxLINE Score Data',
         amount: 0.008,
-        emoji: '⚽'
       })
       sources.push('TxLINE')
 
@@ -110,7 +153,6 @@ export async function processQuestion(params: {
         costs.push({
           service: 'TxLINE Odds Data',
           amount: 0.008,
-          emoji: '📊'
         })
       }
 
@@ -141,6 +183,45 @@ CURRENT ODDS:
       console.error('[Agent] TxLINE fetch error:', e)
       contextData = 'Live data temporarily unavailable.'
     }
+  } else if (fixtureId && intent === 'general') {
+    // User asked something generic (e.g. "Como foi o jogo?") but has a
+    // fixture selected — fetch the real data anyway instead of answering
+    // with no context at all.
+    try {
+      const result = await fetchFixtureContext(fixtureId, costs, sources)
+      contextData = result.contextData
+      fixture = result.fixture
+    } catch (e) {
+      console.error('[Agent] TxLINE fetch error:', e)
+      contextData = 'Live data temporarily unavailable.'
+    }
+  } else if (!fixtureId) {
+    // Cup Overview mode: no fixture selected, answer about the tournament
+    // as a whole instead of a single match.
+    const cupOverviewContext = `
+WORLD CUP 2026 — OVERVIEW:
+
+Quarter-finals in progress:
+- France 0 × 1 Morocco (LIVE, 67')
+- Brazil × Norway (finished, Brazil won 2-1)
+- Portugal × Spain (finished)
+- USA × Belgium (finished)
+- Argentina × Egypt (finished)
+
+Top scorers:
+1. Mbappé (France) — 5 goals
+2. Vinícius Jr (Brazil) — 4 goals
+3. Haaland (Norway) — 4 goals
+
+Upcoming:
+- Semi-finals not yet determined
+`
+    costs.push({
+      service: 'TxLINE Cup Data',
+      amount: 0.003,
+    })
+    sources.push('TxLINE')
+    contextData = cupOverviewContext
   } else if (intent === 'top_scorers') {
     contextData = `
 2026 WORLD CUP TOP SCORERS (simulated data):
@@ -153,7 +234,6 @@ CURRENT ODDS:
     costs.push({
       service: 'TxLINE Tournament Data',
       amount: 0.005,
-      emoji: '🏆'
     })
     sources.push('TxLINE')
   }
@@ -170,13 +250,13 @@ CURRENT ODDS:
   })
 
   costs.push({
-    service: 'Gemini 2.5 Flash',
-    amount: 0.003,
-    emoji: '🤖'
+    service: 'Groq Llama 3.3',
+    amount: 0.001,
   })
-  sources.push('Gemini 2.5 Flash')
+  sources.push('Groq Llama 3.3')
 
   const totalCost = costs.reduce((s, c) => s + c.amount, 0)
+  const isPrediction = intent === 'prediction' && !!fixture
 
   return {
     answer: text,
@@ -186,5 +266,13 @@ CURRENT ODDS:
     sources,
     fixture,
     shareId: nanoid(8),
+    isPrediction,
+    predictionSnapshot: isPrediction && fixture
+      ? {
+          homeScore: fixture.homeScore,
+          awayScore: fixture.awayScore,
+          minute: fixture.minute,
+        }
+      : undefined,
   }
 }

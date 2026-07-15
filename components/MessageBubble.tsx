@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { ChatMessage } from '@/types'
 import CostBreakdown from './CostBreakdown'
 
@@ -7,8 +8,17 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
+  const [momentCopied, setMomentCopied] = useState(false)
   const isUser = message.role === 'user'
   const res = message.response
+
+  const shareMoment = () => {
+    if (!res?.shareId || typeof window === 'undefined') return
+    const url = `${window.location.origin}/r/${res.shareId}?moment=true`
+    navigator.clipboard.writeText(url)
+    setMomentCopied(true)
+    setTimeout(() => setMomentCopied(false), 2000)
+  }
 
   if (isUser) {
     return (
@@ -22,9 +32,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div className="flex items-start gap-3">
-      <span className="w-7 h-7 rounded-lg bg-teal-dim border border-teal flex items-center justify-center flex-shrink-0 mt-0.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-teal" />
-      </span>
       <div className="flex-1 max-w-[90%] min-w-0">
         {res?.fixture && res.fixture.status === 'live' && (
           <div className="inline-flex items-center gap-2 mb-2 bg-red-500/10 border border-red-500/30 rounded-full px-3 py-1">
@@ -52,12 +59,31 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           {message.content}
         </div>
 
+        {res?.isPrediction && (
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-muted border-t border-border pt-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse flex-shrink-0" />
+            <span>
+              Prediction made at {res.predictionSnapshot?.minute ?? '?'}&apos; —{' '}
+              {res.predictionSnapshot?.homeScore}-{res.predictionSnapshot?.awayScore}
+            </span>
+            {res.shareId && (
+              <button
+                onClick={shareMoment}
+                className="ml-auto text-teal hover:underline cursor-pointer flex-shrink-0"
+              >
+                {momentCopied ? 'Copied!' : 'Share this moment →'}
+              </button>
+            )}
+          </div>
+        )}
+
         {res && (
           <CostBreakdown
             costs={res.costs}
             totalCost={res.totalCost}
-            txHash={res.txHash}
+            txHash={message.paymentTxHash || res.txHash}
             shareId={res.shareId}
+            fixtureId={res.fixture?.fixtureId}
           />
         )}
       </div>

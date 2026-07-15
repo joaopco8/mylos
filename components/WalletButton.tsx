@@ -19,30 +19,30 @@ export default function WalletButton() {
     return (
       <button
         onClick={() => setVisible(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal text-bg font-bold text-sm hover:bg-teal-bright transition-colors"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-teal text-bg font-bold text-sm hover:bg-teal-bright active:bg-teal active:scale-95 transition-all cursor-pointer"
       >
-        🔗 Connect Wallet
+        Connect Wallet
       </button>
     )
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-card hover:border-teal/50 transition-colors text-sm"
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-card hover:border-teal/50 hover:bg-card-hover active:scale-95 transition-all text-sm cursor-pointer"
       >
         <span className="w-2 h-2 rounded-full bg-green-400" />
         <span className="text-text font-mono text-xs">
           {shortenAddress(publicKey.toBase58())}
         </span>
-        <span className="text-teal font-bold text-xs">
+        <span className="ml-auto text-teal font-bold text-xs">
           ${balance.toFixed(2)}
         </span>
       </button>
 
       {showMenu && (
-        <div className="absolute right-0 top-12 bg-card border border-border rounded-xl p-2 w-48 z-50 shadow-xl">
+        <div className="absolute right-0 bottom-full mb-2 bg-card border border-border rounded-xl p-2 w-48 z-50 shadow-xl">
           <div className="px-3 py-2 border-b border-border mb-1">
             <p className="text-[10px] text-muted">USDC Balance</p>
             <p className="text-teal font-bold">${balance.toFixed(4)}</p>
@@ -52,7 +52,7 @@ export default function WalletButton() {
               setShowMenu(false)
               disconnect()
             }}
-            className="w-full text-left px-3 py-2 text-xs text-muted hover:text-red-400 transition-colors rounded-lg"
+            className="w-full text-left px-3 py-2 text-xs text-muted hover:text-red-400 hover:bg-card-hover active:scale-[0.98] transition-all rounded-lg cursor-pointer"
           >
             Disconnect
           </button>

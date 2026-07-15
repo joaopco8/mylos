@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TxLINE Mainnet Activation — FieldCall</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 16px;
+    background: #090b0c;
+    color: #ececec;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: #16191b;
+    border: 1px solid #24282b;
+    border-radius: 16px;
+    padding: 28px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #7e888d; font-size: 13px; margin: 0 0 20px; line-height: 1.5; }
+  .warning {
+    background: rgba(146, 137, 0, 0.12);
+    border: 1px solid #928900;
+    color: #d8cf4a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+  button {
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 10px;
+    border: 1px solid #24282b;
+    background: #1c2022;
+    color: #ececec;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #24282b; }
+  button:active:not(:disabled) { transform: scale(0.98); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  #activateBtn { margin-top: 10px; background: #928900; color: #090b0c; border-color: #928900; }
+  #activateBtn:hover:not(:disabled) { background: #b8ac00; }
+  #walletInfo {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: #928900;
+    margin-top: 10px;
+    word-break: break-all;
+  }
+  #log {
+    margin-top: 18px;
+    background: #090b0c;
+    border: 1px solid #24282b;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: ui-monospace, monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 260px;
+    overflow-y: auto;
+    color: #b9c4c2;
+  }
+  #result { margin-top: 20px; padding-top: 18px; border-top: 1px solid #24282b; }
+  #result h2 { font-size: 15px; margin: 0 0 14px; color: #928900; }
+  label { display: block; font-size: 11px; color: #7e888d; text-transform: uppercase; letter-spacing: 0.06em; margin: 12px 0 4px; }
+  .copyrow { display: flex; gap: 8px; }
+  .copyrow input {
+    flex: 1;
+    min-width: 0;
+    background: #090b0c;
+    border: 1px solid #24282b;
+    border-radius: 8px;
+    color: #ececec;
+    font-family: ui-monospace, monospace;
+    font-size: 11.5px;
+    padding: 9px 10px;
+  }
+  .copyrow button { width: auto; padding: 9px 14px; font-size: 12px; }
+  .hint { font-size: 12px; color: #7e888d; margin-top: 14px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>TxLINE Mainnet Activation</h1>
+    <p class="sub">Connect Phantom, subscribe FieldCall's TxLINE access on mainnet, and get the API credentials to paste into .env.local.</p>
+
+    <div class="warning">
+      This broadcasts a real Solana mainnet transaction and pays a small network fee from the connected wallet. Make sure it holds at least 0.01 SOL before activating.
+    </div>
+
+    <button id="connectBtn">Connect Phantom</button>
+    <div id="walletInfo"></div>
+
+    <button id="activateBtn" disabled>Activate on Mainnet</button>
+
+    <pre id="log"></pre>
+
+    <div id="result" hidden>
+      <h2>Success — copy into .env.local</h2>
+
+      <label>TXLINE_API_TOKEN</label>
+      <div class="copyrow">
+        <input id="outToken" readonly />
+        <button data-copy="outToken">Copy</button>
+      </div>
+
+      <label>TXLINE_JWT</label>
+      <div class="copyrow">
+        <input id="outJwt" readonly />
+        <button data-copy="outJwt">Copy</button>
+      </div>
+
+      <label>TXLINE_BASE</label>
+      <div class="copyrow">
+        <input id="outBase" readonly />
+        <button data-copy="outBase">Copy</button>
+      </div>
+
+      <p class="hint">Paste all three lines into the project's .env.local, then restart `npm run dev`.</p>
+    </div>
+  </div>
+
+<script type="module">
+import * as solanaWeb3 from 'https://esm.sh/@solana/web3.js@^1.68.0'
+import * as anchor from 'https://esm.sh/@coral-xyz/anchor@0.30.1'
+
+const CONFIG = {
+  rpcUrl: 'https://mainnet.helius-rpc.com/?api-key=1f1ef0eb-d05a-4e8c-8a68-819a1fc55b54',
+  apiOrigin: 'https://txline.txodds.com',
+  programId: new solanaWeb3.PublicKey('9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA'),
+  txlTokenMint: new solanaWeb3.PublicKey('Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL'),
+}
+const TOKEN_2022_PROGRAM_ID = new solanaWeb3.PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb')
+const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+
+const SERVICE_LEVEL_ID = 1
+const DURATION_WEEKS = 4
+const SELECTED_LEAGUES = []
+
+const connection = new solanaWeb3.Connection(CONFIG.rpcUrl, 'confirmed')
+
+const logEl = document.getElementById('log')
+function log(msg, isError) {
+  const span = document.createElement('span')
+  span.textContent = msg + '\n'
+  if (isError) span.style.color = '#ff6b6b'
+  logEl.appendChild(span)
+  logEl.scrollTop = logEl.scrollHeight
+}
+
+const connectBtn = document.getElementById('connectBtn')
+const activateBtn = document.getElementById('activateBtn')
+const walletInfo = document.getElementById('walletInfo')
+
+let publicKey = null
+
+function getProvider() {
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana
+  if (window.solana?.isPhantom) return window.solana
+  return null
+}
+
+connectBtn.addEventListener('click', async () => {
+  try {
+    const provider = getProvider()
+    if (!provider) {
+      alert('Phantom wallet not found. Install it from phantom.app, then reload this page.')
+      return
+    }
+    const resp = await provider.connect()
+    publicKey = resp.publicKey
+    walletInfo.textContent = 'Connected: ' + publicKey.toBase58()
+    activateBtn.disabled = false
+    log('Wallet connected: ' + publicKey.toBase58())
+
+    const balance = await connection.getBalance(publicKey)
+    log('Balance: ' + (balance / 1e9) + ' SOL')
+    if (balance < 0.005 * 1e9) {
+      log('WARNING: balance is low — send at least 0.01 SOL to this wallet before activating, or the transaction will fail.')
+    }
+  } catch (e) {
+    const msg = e?.message || e?.toString() || JSON.stringify(e)
+    log('Connect failed: ' + msg, true)
+    console.error('Full error:', e)
+  }
+})
+
+activateBtn.addEventListener('click', async () => {
+  activateBtn.disabled = true
+  try {
+    await activate()
+  } catch (err) {
+    const msg = err?.message || err?.toString() || JSON.stringify(err)
+    const logs = err?.logs ? '\nLogs: ' + err.logs.join('\n') : ''
+    log('FAILED: ' + msg + logs, true)
+    console.error('Full error:', err)
+  } finally {
+    activateBtn.disabled = false
+  }
+})
+
+function findAta(owner, mint) {
+  const [ata] = solanaWeb3.PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), TOKEN_2022_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  )
+  return ata
+}
+
+async function activate() {
+  const provider = getProvider()
+  if (!provider || !publicKey) throw new Error('Connect wallet first')
+
+  const wallet = {
+    publicKey,
+    signTransaction: (tx) => provider.signTransaction(tx),
+    signAllTransactions: (txs) => provider.signAllTransactions(txs),
+  }
+
+  const anchorProvider = new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' })
+  anchor.setProvider(anchorProvider)
+
+  log('\nGetting guest JWT...')
+  const authRes = await fetch(CONFIG.apiOrigin + '/auth/guest/start', { method: 'POST' })
+  if (!authRes.ok) throw new Error('Guest JWT request failed: ' + authRes.status)
+  const { token: jwt } = await authRes.json()
+  log('JWT obtained')
+
+  // The mainnet TxLINE program has no on-chain IDL account — fetch the
+  // devnet program's IDL instead (same source, same instruction layout)
+  // and repoint it at the mainnet program address before building.
+  log('\nFetching IDL from devnet program...')
+  const devnetConnection = new solanaWeb3.Connection('https://api.devnet.solana.com', 'confirmed')
+  const devnetProgramId = new solanaWeb3.PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J')
+  const idl = await anchor.Program.fetchIdl(devnetProgramId, { connection: devnetConnection })
+  if (!idl) throw new Error('Could not fetch IDL from devnet either')
+  log('IDL fetched from devnet')
+
+  // Anchor 0.30+ reads the target program address from idl.address, so the
+  // devnet IDL must be repointed at the mainnet program id or every
+  // instruction built from it would target the devnet program instead.
+  idl.address = CONFIG.programId.toBase58()
+  const program = new anchor.Program(idl, anchorProvider)
+
+  const [tokenTreasuryPda] = solanaWeb3.PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode('token_treasury_v2')], CONFIG.programId
+  )
+  const [pricingMatrixPda] = solanaWeb3.PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode('pricing_matrix')], CONFIG.programId
+  )
+
+  const tokenTreasuryVault = findAta(tokenTreasuryPda, CONFIG.txlTokenMint)
+  const userTokenAccount = findAta(publicKey, CONFIG.txlTokenMint)
+
+  log('\nChecking token account...')
+  const existingAccount = await connection.getAccountInfo(userTokenAccount)
+  if (existingAccount) {
+    log('ATA already exists')
+  } else {
+    log('Creating ATA — approve in Phantom...')
+    const createAtaIx = new solanaWeb3.TransactionInstruction({
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: publicKey, isSigner: true, isWritable: true },
+        { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+        { pubkey: publicKey, isSigner: false, isWritable: false },
+        { pubkey: CONFIG.txlTokenMint, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      data: Uint8Array.from([1]), // CreateIdempotent
+    })
+    const tx = new solanaWeb3.Transaction().add(createAtaIx)
+    const sig = await anchorProvider.sendAndConfirm(tx, [])
+    log('ATA created: ' + sig)
+  }
+
+  log('\nBuilding subscribe transaction...')
+  log('Accounts: ' + JSON.stringify({
+    user: publicKey.toBase58(),
+    pricingMatrix: pricingMatrixPda.toBase58(),
+    tokenMint: CONFIG.txlTokenMint.toBase58(),
+    userTokenAccount: userTokenAccount.toBase58(),
+    tokenTreasuryVault: tokenTreasuryVault.toBase58(),
+    tokenTreasuryPda: tokenTreasuryPda.toBase58(),
+  }))
+
+  log('\nSubscribing on mainnet — approve in Phantom...')
+  let txSig
+  try {
+    txSig = await program.methods
+      .subscribe(SERVICE_LEVEL_ID, DURATION_WEEKS)
+      .accounts({
+        user: publicKey,
+        pricingMatrix: pricingMatrixPda,
+        tokenMint: CONFIG.txlTokenMint,
+        userTokenAccount,
+        tokenTreasuryVault,
+        tokenTreasuryPda,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: solanaWeb3.SystemProgram.programId,
+      })
+      .rpc()
+    log('Subscription tx: ' + txSig)
+    log('Explorer: https://explorer.solana.com/tx/' + txSig)
+  } catch (e) {
+    if (e.message?.includes('already subscribed') || e.message?.includes('already in use')) {
+      log('Already subscribed on mainnet')
+      txSig = e.signature || 'already_subscribed_mainnet'
+    } else {
+      console.error('Subscribe error:', e)
+      throw e
+    }
+  }
+
+  log('\nSigning activation message — approve in Phantom...')
+  const messageString = `${txSig}:${SELECTED_LEAGUES.join(',')}:${jwt}`
+  const encodedMessage = new TextEncoder().encode(messageString)
+  const { signature } = await provider.signMessage(encodedMessage, 'utf8')
+  const walletSignature = btoa(String.fromCharCode(...signature))
+
+  log('\nActivating API token...')
+  const activationRes = await fetch(CONFIG.apiOrigin + '/api/token/activate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + jwt,
+    },
+    body: JSON.stringify({ txSig, walletSignature, leagues: SELECTED_LEAGUES }),
+  })
+  if (!activationRes.ok) {
+    const errBody = await activationRes.text()
+    throw new Error('Activation failed: ' + activationRes.status + ' ' + errBody)
+  }
+  const activationData = await activationRes.json()
+  const apiToken = activationData.token || activationData
+  const apiTokenStr = typeof apiToken === 'string' ? apiToken : JSON.stringify(apiToken)
+
+  log('\n=== SUCCESS ===')
+
+  document.getElementById('outToken').value = 'TXLINE_API_TOKEN=' + apiTokenStr
+  document.getElementById('outJwt').value = 'TXLINE_JWT=' + jwt
+  document.getElementById('outBase').value = 'TXLINE_BASE=' + CONFIG.apiOrigin
+  document.getElementById('result').hidden = false
+}
+
+document.querySelectorAll('button[data-copy]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.copy)
+    navigator.clipboard.writeText(input.value)
+    btn.textContent = 'Copied!'
+    setTimeout(() => (btn.textContent = 'Copy'), 1500)
+  })
+})
+</script>
+</body>
+</html>

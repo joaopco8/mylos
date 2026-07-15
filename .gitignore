@@ -42,3 +42,6 @@ next-env.d.ts
 
 # TxLINE project wallet (secret key)
 scripts/txline-wallet.json
+
+# standalone validator script's own deps
+fieldcall-validator/node_modules

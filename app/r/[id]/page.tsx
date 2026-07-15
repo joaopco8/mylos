@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ moment?: string }>
 }
 
 async function getShareData(id: string) {
@@ -16,33 +17,50 @@ async function getShareData(id: string) {
   }
 }
 
+async function getCurrentScore(fixtureId: number) {
+  try {
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const res = await fetch(`${base}/api/match/${fixtureId}`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.score || null
+  } catch {
+    return null
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const share = await getShareData(id)
-  if (!share) return { title: 'FieldCall' }
+  if (!share) return { title: 'Mylos' }
 
   return {
-    title: `"${share.question}" — FieldCall`,
+    title: `"${share.question}" — Mylos`,
     description: share.response.answer.substring(0, 150),
     openGraph: {
-      title: 'FieldCall · World Cup 2026',
+      title: 'Mylos · World Cup 2026',
       description: share.response.answer.substring(0, 150),
-      siteName: 'FieldCall',
+      siteName: 'Mylos',
     },
     twitter: {
       card: 'summary',
-      title: 'FieldCall · World Cup 2026',
+      title: 'Mylos · World Cup 2026',
       description: share.response.answer.substring(0, 150),
     },
   }
 }
 
-export default async function SharePage({ params }: Props) {
+export default async function SharePage({ params, searchParams }: Props) {
   const { id } = await params
+  const { moment } = await searchParams
   const share = await getShareData(id)
   if (!share) notFound()
 
   const { question, response, fixture } = share
+  const isMoment = moment === 'true' && response.isPrediction
+  const currentScore = isMoment && response.fixture?.fixtureId
+    ? await getCurrentScore(response.fixture.fixtureId)
+    : null
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
@@ -50,10 +68,7 @@ export default async function SharePage({ params }: Props) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-teal-dim border border-teal flex items-center justify-center font-bold text-teal">
-              ⚡
-            </div>
-            <span className="text-white font-bold text-lg">FieldCall</span>
+            <span className="text-white font-bold text-lg">Mylos</span>
           </div>
           <p className="text-xs text-muted">World Cup 2026 · AI Analysis</p>
         </div>
@@ -77,6 +92,32 @@ export default async function SharePage({ params }: Props) {
           <p className="text-sm text-teal font-medium">&quot;{question}&quot;</p>
         </div>
 
+        {/* Moment variant: prediction made at a snapshot in time */}
+        {isMoment && response.predictionSnapshot && (
+          <div className="bg-card border border-border rounded-xl px-4 py-3 mb-4">
+            <p className="text-xs text-muted">
+              Asked this at the {response.predictionSnapshot.minute ?? '?'}&apos;
+              {' '}with score {response.predictionSnapshot.homeScore}-
+              {response.predictionSnapshot.awayScore}.
+            </p>
+            {currentScore ? (
+              <p className="text-sm text-teal font-medium mt-1">
+                Now: {currentScore.homeScore}-{currentScore.awayScore}
+                {currentScore.status === 'live' && currentScore.minute
+                  ? ` (${currentScore.minute}')`
+                  : currentScore.status === 'finished'
+                  ? ' (final)'
+                  : ''}{' '}
+                — check what happened next →
+              </p>
+            ) : (
+              <p className="text-sm text-teal font-medium mt-1">
+                Check what happened next →
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Image */}
         {response.imageBase64 && (
           <div className="rounded-xl overflow-hidden border border-border mb-4">
@@ -92,10 +133,7 @@ export default async function SharePage({ params }: Props) {
         {/* Answer */}
         <div className="bg-card border border-border rounded-xl p-4 mb-4">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-5 h-5 rounded-full bg-teal-dim border border-teal flex items-center justify-center text-xs">
-              ⚡
-            </div>
-            <span className="text-xs text-muted">FieldCall AI</span>
+            <span className="text-xs text-muted">Mylos AI</span>
           </div>
           <p className="text-sm text-text leading-relaxed whitespace-pre-wrap">
             {response.answer}
@@ -112,10 +150,10 @@ export default async function SharePage({ params }: Props) {
               ${response.totalCost.toFixed(4)} USDC
             </span>
           </div>
-          {response.costs.map((cost: { emoji: string; service: string; amount: number }, i: number) => (
+          {response.costs.map((cost: { service: string; amount: number }, i: number) => (
             <div key={i} className="flex justify-between">
               <span className="text-xs text-muted">
-                {cost.emoji} {cost.service}
+                {cost.service}
               </span>
               <span className="text-xs text-muted font-mono">
                 ${cost.amount.toFixed(4)}
@@ -131,12 +169,12 @@ export default async function SharePage({ params }: Props) {
         <div className="text-center">
           <a
             href="/"
-            className="inline-flex items-center gap-2 bg-teal text-bg font-bold px-6 py-3 rounded-xl hover:bg-teal-bright transition-colors text-sm"
+            className="inline-flex items-center gap-2 bg-teal text-bg font-bold px-6 py-3 rounded-xl hover:bg-teal-bright active:scale-95 transition-all text-sm"
           >
-            ⚡ Ask my own question
+            Ask my own question
           </a>
           <p className="text-xs text-muted mt-3">
-            fieldcall.xyz · Powered by TxLINE + Gemini
+            mylos.xyz · Powered by TxLINE + Groq
           </p>
         </div>
       </div>

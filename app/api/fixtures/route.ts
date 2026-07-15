@@ -9,10 +9,17 @@ export async function GET(request: Request) {
     ? await getLiveMatches()
     : await getFixtures()
 
-  return NextResponse.json({
-    fixtures,
-    total: fixtures.length,
-    source: 'TxLINE',
-    timestamp: new Date().toISOString(),
-  })
+  return NextResponse.json(
+    {
+      fixtures,
+      total: fixtures.length,
+      source: 'TxLINE',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
+      },
+    }
+  )
 }

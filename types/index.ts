@@ -1,7 +1,6 @@
 export interface CostItem {
   service: string
   amount: number
-  emoji: string
 }
 
 export interface AgentResponse {
@@ -23,6 +22,12 @@ export interface AgentResponse {
   imageBase64?: string
   imageMimeType?: string
   shareId?: string
+  isPrediction?: boolean
+  predictionSnapshot?: {
+    homeScore: number
+    awayScore: number
+    minute?: number
+  }
 }
 
 export interface ChatMessage {
@@ -30,5 +35,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   response?: AgentResponse
+  paymentTxHash?: string
   timestamp: Date
 }

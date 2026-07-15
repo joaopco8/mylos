@@ -25,6 +25,19 @@ body {
   outline-offset: 2px;
 }
 
+/* Text inputs get their own focus treatment (border color, set per
+   component) instead of the generic outline ring above — a chunky
+   rectangle reads as broken/loud on something you're actively typing
+   into, where a subtle border change is the norm. This has to live here
+   (outside Tailwind's utility layer) because unlayered rules always beat
+   layered ones regardless of specificity, so a component-level
+   `focus-visible:outline-none` utility alone can't win against the rule
+   above. */
+textarea:focus-visible,
+input:focus-visible {
+  outline: none;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

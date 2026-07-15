@@ -25,11 +25,19 @@ export function useWalletBalance() {
 
     async function fetchBalance() {
       setLoading(true)
+      const ata = getAssociatedTokenAddressSync(USDC_MINT, publicKey!)
+      console.log('[Balance] Wallet:', publicKey!.toBase58())
+      console.log('[Balance] ATA:', ata.toBase58())
       try {
-        const ata = getAssociatedTokenAddressSync(USDC_MINT, publicKey!)
         const info = await connection.getTokenAccountBalance(ata)
+        console.log('[Balance] Raw:', info.value)
         if (!cancelled) setBalance(info.value.uiAmount || 0)
-      } catch {
+      } catch (e: any) {
+        // A missing ATA (wallet has never held USDC) is a real 0 balance.
+        // Anything else (rate limit, network error) is not — log it instead
+        // of silently showing $0.00 for what might just be an RPC hiccup.
+        const isMissingAccount = e.message?.includes('could not find account')
+        console.error('[Balance] Error:', e.message, isMissingAccount ? '(no USDC account yet — real $0)' : '(fetch failed, not a confirmed $0)')
         if (!cancelled) setBalance(0)
       } finally {
         if (!cancelled) setLoading(false)

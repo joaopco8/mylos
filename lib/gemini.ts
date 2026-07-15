@@ -1,35 +1,40 @@
 import axios from 'axios'
+import Groq from 'groq-sdk'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY!,
+})
 
 export async function geminiChat(params: {
   prompt: string
   systemInstruction?: string
   maxTokens?: number
 }): Promise<{ text: string }> {
-  const body: any = {
-    contents: [{
-      parts: [{ text: params.prompt }]
-    }],
-    generationConfig: {
-      maxOutputTokens: params.maxTokens || 800,
-      temperature: 0.7,
-    }
-  }
+  const messages: Groq.Chat.ChatCompletionMessageParam[] = []
 
   if (params.systemInstruction) {
-    body.systemInstruction = {
-      parts: [{ text: params.systemInstruction }]
-    }
+    messages.push({
+      role: 'system',
+      content: params.systemInstruction,
+    })
   }
 
-  const res = await axios.post(
-    `${GEMINI_BASE}/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    body
-  )
+  messages.push({
+    role: 'user',
+    content: params.prompt,
+  })
 
-  const text = res.data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages,
+    max_tokens: params.maxTokens || 800,
+    temperature: 0.7,
+  })
+
+  const text = completion.choices[0]?.message?.content || ''
   return { text }
 }
 

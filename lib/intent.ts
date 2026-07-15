@@ -18,7 +18,14 @@ export function detectIntent(question: string): Intent {
     q.includes('generate') ||
     q.includes('create a') ||
     q.includes('draw') ||
-    q.includes('illustrate')
+    q.includes('illustrate') ||
+    q.includes('imagem') ||
+    q.includes('foto') ||
+    q.includes('gera') ||
+    q.includes('cria uma') ||
+    q.includes('desenha') ||
+    q.includes('faz uma foto') ||
+    q.includes('ilustra')
   ) return 'image'
 
   if (
@@ -27,7 +34,30 @@ export function detectIntent(question: string): Intent {
     q.includes('goal') ||
     q.includes('winning') ||
     q.includes('who is') ||
-    q.includes('live')
+    q.includes('live') ||
+    q.includes('placar') ||
+    q.includes('resultado') ||
+    q.includes('tá ganhando') ||
+    q.includes('está ganhando') ||
+    q.includes('como tá') ||
+    q.includes('como está') ||
+    q.includes('gol') ||
+    q.includes('marcou') ||
+    q.includes('ao vivo') ||
+    q.includes('agora') ||
+    q.includes('minuto') ||
+    q.includes('tempo') ||
+    q.includes('como foi') ||
+    q.includes('como foi o jogo') ||
+    q.includes('resultado final') ||
+    q.includes('terminou') ||
+    q.includes('ganhou') ||
+    q.includes('perdeu') ||
+    q.includes('venceu') ||
+    q.includes('quem ganhou') ||
+    q.includes('quem venceu') ||
+    q.includes('como terminou') ||
+    q.includes('final score')
   ) return 'live_score'
 
   if (
@@ -37,7 +67,12 @@ export function detectIntent(question: string): Intent {
     q.includes('favorite') ||
     q.includes('favourite') ||
     q.includes('betting') ||
-    q.includes('bet')
+    q.includes('bet') ||
+    q.includes('probabilidade') ||
+    q.includes('favorito') ||
+    q.includes('apostas') ||
+    q.includes('cotação') ||
+    q.includes('paga quanto')
   ) return 'odds'
 
   if (
@@ -47,13 +82,31 @@ export function detectIntent(question: string): Intent {
     q.includes('prediction') ||
     q.includes('forecast') ||
     q.includes('analyze') ||
-    q.includes('analysis')
+    q.includes('analysis') ||
+    q.includes('vai ganhar') ||
+    q.includes('vai vencer') ||
+    q.includes('quem ganha') ||
+    q.includes('quem vai') ||
+    q.includes('chances') ||
+    q.includes('previsão') ||
+    q.includes('previsao') ||
+    q.includes('acha que') ||
+    q.includes('vai dar') ||
+    q.includes('consegue') ||
+    q.includes('passa') ||
+    q.includes('elimina') ||
+    q.includes('classificar')
   ) return 'prediction'
 
   if (
     q.includes('top scorer') ||
     q.includes('most goals') ||
-    q.includes('golden boot')
+    q.includes('golden boot') ||
+    q.includes('artilheiro') ||
+    q.includes('goleador') ||
+    q.includes('mais gols') ||
+    q.includes('quem fez mais') ||
+    q.includes('quem marcou mais')
   ) return 'top_scorers'
 
   if (
