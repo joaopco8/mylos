@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   description:
     "Ask anything about the 2026 World Cup. Live data via TxLINE, AI analysis, verifiable cost on Solana.",
   icons: {
-    icon: "/faviconbola.webp",
-    shortcut: "/faviconbola.webp",
-    apple: "/faviconbola.webp",
+    icon: "/faviconbola.png",
+    shortcut: "/faviconbola.png",
+    apple: "/faviconbola.png",
   },
   openGraph: {
     title: "Mylos — AI-Powered World Cup Analysis",
