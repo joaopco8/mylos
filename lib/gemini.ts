@@ -4,9 +4,17 @@ import Groq from 'groq-sdk'
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-})
+// Lazy singleton — instantiating Groq eagerly at module scope throws
+// immediately if GROQ_API_KEY is unset, which crashes `next build`'s page
+// data collection step for every route that imports this module (even
+// ones that don't call geminiChat), not just requests that actually need it.
+let groqClient: Groq | null = null
+function getGroq(): Groq {
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+  }
+  return groqClient
+}
 
 export async function geminiChat(params: {
   prompt: string
@@ -27,7 +35,7 @@ export async function geminiChat(params: {
     content: params.prompt,
   })
 
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroq().chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages,
     max_tokens: params.maxTokens || 800,
