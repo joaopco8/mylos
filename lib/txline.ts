@@ -323,19 +323,36 @@ export async function getLiveMatches(): Promise<Fixture[]> {
   return fixtures.filter(f => f.status === 'live')
 }
 
+// A match is only ever "live" for this long after kickoff (90 min +
+// stoppage + extra time + penalties, plus slack) — after that, it's
+// "finished" no matter what. Used to derive status/minute from real
+// wall-clock time instead of trusting a fixed string, so the mock
+// fallback below can never claim a match from days ago is still live.
+const LIVE_WINDOW_MINUTES = 150
+
+function deriveLiveStatus(startTime?: string): { status: 'upcoming' | 'live' | 'finished'; minute?: number } {
+  if (!startTime) return { status: 'upcoming' }
+  const elapsedMin = (Date.now() - new Date(startTime).getTime()) / 60000
+  if (elapsedMin < 0) return { status: 'upcoming' }
+  if (elapsedMin < LIVE_WINDOW_MINUTES) return { status: 'live', minute: Math.min(Math.round(elapsedMin), 120) }
+  return { status: 'finished' }
+}
+
 // Mock fixtures for development when TxLINE devnet is empty.
 // Fixture IDs below are real, verified mainnet TxLINE fixture IDs
 // (confirmed via /api/scores/snapshot/:id returning live 200 data).
+// `status`/`minute` are intentionally NOT hardcoded here — they're
+// derived from `startTime` at read time via deriveLiveStatus() below,
+// so this fallback data stays correct no matter how much real time has
+// passed since it was written, even if the real TxLINE call fails.
 function getMockFixtures(): Fixture[] {
-  return [
+  const base: Array<Omit<Fixture, 'status' | 'minute'> & { startTime: string }> = [
     {
       fixtureId: 18209181,
       homeTeam: 'France',
       awayTeam: 'Morocco',
       homeFlag: '🇫🇷',
       awayFlag: '🇲🇦',
-      status: 'live',
-      minute: 67,
       startTime: '2026-07-09T20:00:00Z',
     },
     {
@@ -344,7 +361,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Norway',
       homeFlag: '🇧🇷',
       awayFlag: '🇳🇴',
-      status: 'finished',
       startTime: '2026-07-05T20:00:00Z',
     },
     {
@@ -353,7 +369,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Spain',
       homeFlag: '🇵🇹',
       awayFlag: '🇪🇸',
-      status: 'finished',
       startTime: '2026-07-06T19:00:00Z',
     },
     {
@@ -362,7 +377,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Belgium',
       homeFlag: '🇺🇸',
       awayFlag: '🇧🇪',
-      status: 'finished',
       startTime: '2026-07-07T00:00:00Z',
     },
     {
@@ -371,7 +385,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Egypt',
       homeFlag: '🇦🇷',
       awayFlag: '🇪🇬',
-      status: 'finished',
       startTime: '2026-07-07T16:00:00Z',
     },
     {
@@ -380,7 +393,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Colombia',
       homeFlag: '🇨🇭',
       awayFlag: '🇨🇴',
-      status: 'finished',
       startTime: '2026-07-07T20:00:00Z',
     },
     {
@@ -389,7 +401,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'England',
       homeFlag: '🇲🇽',
       awayFlag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-      status: 'finished',
       startTime: '2026-07-06T00:00:00Z',
     },
     {
@@ -398,7 +409,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Morocco',
       homeFlag: '🇨🇦',
       awayFlag: '🇲🇦',
-      status: 'finished',
       startTime: '2026-07-04T17:00:00Z',
     },
     {
@@ -407,7 +417,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'France',
       homeFlag: '🇵🇾',
       awayFlag: '🇫🇷',
-      status: 'finished',
       startTime: '2026-07-04T21:03:00Z',
     },
     {
@@ -416,7 +425,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Paraguay',
       homeFlag: '🇩🇪',
       awayFlag: '🇵🇾',
-      status: 'finished',
       startTime: '2026-06-29T20:30:00Z',
     },
     // Quarter-finals confirmed via the official TxLINE schedule docs.
@@ -426,7 +434,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Belgium',
       homeFlag: '🇪🇸',
       awayFlag: '🇧🇪',
-      status: 'finished',
       startTime: '2026-07-10T19:00:00Z',
     },
     {
@@ -435,7 +442,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'England',
       homeFlag: '🇳🇴',
       awayFlag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-      status: 'finished',
       startTime: '2026-07-11T21:00:00Z',
     },
     {
@@ -444,7 +450,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Switzerland',
       homeFlag: '🇦🇷',
       awayFlag: '🇨🇭',
-      status: 'finished',
       startTime: '2026-07-12T01:00:00Z',
     },
     // Semi-finals.
@@ -454,7 +459,6 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Spain',
       homeFlag: '🇫🇷',
       awayFlag: '🇪🇸',
-      status: 'upcoming',
       startTime: '2026-07-14T19:00:00Z',
     },
     {
@@ -463,10 +467,11 @@ function getMockFixtures(): Fixture[] {
       awayTeam: 'Argentina',
       homeFlag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       awayFlag: '🇦🇷',
-      status: 'upcoming',
       startTime: '2026-07-15T19:00:00Z',
     },
   ]
+
+  return base.map(f => ({ ...f, ...deriveLiveStatus(f.startTime) }))
 }
 
 // Live matches always first, then most-recently-happened first (finished
@@ -484,79 +489,36 @@ function sortFixtures(fixtures: Fixture[]): Fixture[] {
   })
 }
 
-// Mock score for development
+// Mock score for development. Final scores below are historical facts
+// (fixed), but status/minute are ALWAYS derived from the fixture's real
+// startTime via deriveLiveStatus() — never hardcoded — so this fallback
+// can't claim a match from days ago is still live just because that was
+// true whenever this table was last edited.
 export function getMockScore(fixtureId: number): Score {
-  const mockScores: Record<number, Score> = {
-    18209181: {
-      fixtureId: 18209181,
-      homeTeam: 'France',
-      awayTeam: 'Morocco',
-      homeScore: 1,
-      awayScore: 0,
-      halfTimeHomeScore: 0,
-      halfTimeAwayScore: 0,
-      status: 'live',
-      minute: 67,
-    },
-    18187298: {
-      fixtureId: 18187298,
-      homeTeam: 'Brazil',
-      awayTeam: 'Norway',
-      homeScore: 2,
-      awayScore: 1,
-      status: 'finished',
-    },
-    18218149: {
-      fixtureId: 18218149,
-      homeTeam: 'Spain',
-      awayTeam: 'Belgium',
-      homeScore: 2,
-      awayScore: 1,
-      status: 'finished',
-    },
-    18213979: {
-      fixtureId: 18213979,
-      homeTeam: 'Norway',
-      awayTeam: 'England',
-      homeScore: 1,
-      awayScore: 2,
-      status: 'finished',
-    },
-    18222446: {
-      fixtureId: 18222446,
-      homeTeam: 'Argentina',
-      awayTeam: 'Switzerland',
-      homeScore: 3,
-      awayScore: 1,
-      status: 'finished',
-    },
-    18237038: {
-      fixtureId: 18237038,
-      homeTeam: 'France',
-      awayTeam: 'Spain',
-      homeScore: 0,
-      awayScore: 0,
-      status: 'upcoming',
-    },
-    18241006: {
-      fixtureId: 18241006,
-      homeTeam: 'England',
-      awayTeam: 'Argentina',
-      homeScore: 0,
-      awayScore: 0,
-      status: 'upcoming',
-    },
+  const knownScores: Record<number, { homeScore: number; awayScore: number; halfTimeHomeScore?: number; halfTimeAwayScore?: number }> = {
+    18209181: { homeScore: 2, awayScore: 0, halfTimeHomeScore: 1, halfTimeAwayScore: 0 },
+    18187298: { homeScore: 2, awayScore: 1 },
+    18218149: { homeScore: 2, awayScore: 1 },
+    18213979: { homeScore: 1, awayScore: 2 },
+    18222446: { homeScore: 3, awayScore: 1 },
+    18237038: { homeScore: 0, awayScore: 0 },
+    18241006: { homeScore: 0, awayScore: 0 },
   }
-  if (mockScores[fixtureId]) return mockScores[fixtureId]
 
   const fixture = getMockFixtures().find(f => f.fixtureId === fixtureId)
+  const known = knownScores[fixtureId]
+  const live = fixture ? deriveLiveStatus(fixture.startTime) : { status: 'upcoming' as const }
+
   return {
     fixtureId,
     homeTeam: fixture?.homeTeam || 'Home',
     awayTeam: fixture?.awayTeam || 'Away',
-    homeScore: fixture ? 1 : 0,
-    awayScore: 0,
-    status: fixture ? 'finished' : 'upcoming',
+    homeScore: known?.homeScore ?? (live.status === 'finished' ? 1 : 0),
+    awayScore: known?.awayScore ?? 0,
+    halfTimeHomeScore: known?.halfTimeHomeScore,
+    halfTimeAwayScore: known?.halfTimeAwayScore,
+    status: live.status,
+    minute: live.minute,
   }
 }
 
