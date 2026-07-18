@@ -76,7 +76,7 @@ async function sendMatchUpdate(
   minute: string
 ): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
-    'https://fieldcall.vercel.app'
+    'https://myloswc.vercel.app'
 
   const msg = `${emoji} *${escapeMarkdown(headline)}*\n\n` +
     `${escapeMarkdown(commentary)}\n\n` +
@@ -257,7 +257,7 @@ bot.command('score', async (ctx) => {
   ])
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
-    'https://fieldcall.vercel.app'
+    'https://myloswc.vercel.app'
 
   await ctx.reply(
     `⚽ ${score.homeTeam} ${score.homeScore}-${score.awayScore} ${score.awayTeam}\n` +
@@ -284,7 +284,7 @@ bot.command('ask', async (ctx) => {
 
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ||
-      'https://fieldcall.vercel.app'
+      'https://myloswc.vercel.app'
 
     const res = await fetch(`${appUrl}/api/chat`, {
       method: 'POST',

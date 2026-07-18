@@ -266,7 +266,7 @@ export default function TechnicalDocsPage() {
 
           <SectionCard id="api" eyebrow={SECTIONS[7].eyebrow} title={SECTIONS[7].title}>
             <div className="text-sm text-[#b9c4c2] space-y-1 mb-5">
-              <p>Base URL: <code className="text-teal">https://fieldcall.vercel.app/api/v1</code></p>
+              <p>Base URL: <code className="text-teal">https://myloswc.vercel.app/api/v1</code></p>
               <p>Auth: <code className="text-teal">x-api-key</code> header</p>
               <p>Rate limit: 100 req/min</p>
             </div>
@@ -291,15 +291,15 @@ export default function TechnicalDocsPage() {
               QUICK START
             </p>
             <Code>{`# Get live fixtures
-curl https://fieldcall.vercel.app/api/v1/fixtures \\
+curl https://myloswc.vercel.app/api/v1/fixtures \\
   -H "x-api-key: fc_hackathon_judge_key"
 
 # Verify on-chain
-curl https://fieldcall.vercel.app/api/v1/verify/18209181 \\
+curl https://myloswc.vercel.app/api/v1/verify/18209181 \\
   -H "x-api-key: fc_hackathon_judge_key"
 
 # AI analysis
-curl -X POST https://fieldcall.vercel.app/api/v1/analyze \\
+curl -X POST https://myloswc.vercel.app/api/v1/analyze \\
   -H "x-api-key: fc_hackathon_judge_key" \\
   -H "Content-Type: application/json" \\
   -d '{"question":"Who will win?","fixtureId":18209181}'`}</Code>
@@ -322,14 +322,14 @@ curl -X POST https://fieldcall.vercel.app/api/v1/analyze \\
             <div className="text-sm space-y-1.5">
               <p>
                 <span className="text-muted">GitHub: </span>
-                <a href="https://github.com/joaopco8/meteramarket" target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
-                  github.com/joaopco8/meteramarket
+                <a href="https://github.com/joaopco8/mylos" target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
+                  github.com/joaopco8/mylos
                 </a>
               </p>
               <p>
                 <span className="text-muted">Live demo: </span>
-                <a href="https://fieldcall.vercel.app" target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
-                  fieldcall.vercel.app
+                <a href="https://myloswc.vercel.app" target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
+                  myloswc.vercel.app
                 </a>
               </p>
             </div>
@@ -337,7 +337,7 @@ curl -X POST https://fieldcall.vercel.app/api/v1/analyze \\
         </div>
 
         <p className="mt-12 text-xs text-muted">
-          mylos.xyz · World Cup 2026 · Powered by TxLINE + Groq + Solana
+          myloswc.vercel.app · World Cup 2026 · Powered by TxLINE + Groq + Solana
         </p>
       </div>
     </div>

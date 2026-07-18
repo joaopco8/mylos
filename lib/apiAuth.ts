@@ -27,7 +27,7 @@ export function validateApiKey(request: Request): ApiKeyResult {
 
 export function unauthorizedResponse(error: string) {
   return Response.json(
-    { error, docs: 'https://fieldcall.vercel.app/docs' },
+    { error, docs: 'https://myloswc.vercel.app/docs' },
     { status: 401 }
   )
 }

@@ -37,7 +37,7 @@ const ENDPOINTS: Endpoint[] = [
     desc: ['List all World Cup 2026 fixtures with live status.', 'Status is refreshed from TxLINE on every call — never a stale cached value.'],
     when: 'Poll this to build a live match list or dashboard.',
     cost: 'Free',
-    curl: `curl https://fieldcall.vercel.app/api/v1/fixtures \\
+    curl: `curl https://myloswc.vercel.app/api/v1/fixtures \\
   -H "x-api-key: YOUR_KEY"`,
     example: `{
   "data": [
@@ -62,7 +62,7 @@ const ENDPOINTS: Endpoint[] = [
     desc: ['Live score + odds for a specific match.', 'Verified against TxLINE mainnet, with a mock fallback if the live feed is unavailable.'],
     when: 'Poll this for a specific match — e.g. a trading bot reacting to goals or odds movement.',
     cost: 'Free',
-    curl: `curl https://fieldcall.vercel.app/api/v1/match/18209181 \\
+    curl: `curl https://myloswc.vercel.app/api/v1/match/18209181 \\
   -H "x-api-key: YOUR_KEY"`,
     example: `{
   "data": {
@@ -98,7 +98,7 @@ const ENDPOINTS: Endpoint[] = [
     ],
     when: 'Call this before acting on a stat in an automated system — confirms the number is backed by an on-chain proof, not just an API response.',
     cost: 'Free',
-    curl: `curl https://fieldcall.vercel.app/api/v1/verify/18209181 \\
+    curl: `curl https://myloswc.vercel.app/api/v1/verify/18209181 \\
   -H "x-api-key: YOUR_KEY"`,
     example: `{
   "data": {
@@ -119,7 +119,7 @@ const ENDPOINTS: Endpoint[] = [
     when: 'Get a natural-language read on a match, or on the tournament as a whole (omit fixtureId).',
     cost: '~$0.017 per call (TxLINE data + Groq inference)',
     body: '{ question: string, fixtureId?: number }',
-    curl: `curl -X POST https://fieldcall.vercel.app/api/v1/analyze \\
+    curl: `curl -X POST https://myloswc.vercel.app/api/v1/analyze \\
   -H "x-api-key: YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"question":"Who will win?","fixtureId":18209181}'`,
@@ -144,7 +144,7 @@ const ENDPOINTS: Endpoint[] = [
     when: 'Register once, then get pushed events instead of polling — for systems that react to signals as they happen.',
     cost: 'Free',
     body: '{ url: string, fixtureIds?: number[], events?: string[] }',
-    curl: `curl -X POST https://fieldcall.vercel.app/api/v1/webhooks \\
+    curl: `curl -X POST https://myloswc.vercel.app/api/v1/webhooks \\
   -H "x-api-key: YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://your-system.com/hook","fixtureIds":[18209181]}'`,
@@ -305,7 +305,7 @@ export default function DocsPage() {
             <p className="text-[11px] font-bold tracking-widest text-muted mb-1">
               BASE URL
             </p>
-            <code className="text-sm text-white">https://fieldcall.vercel.app/api/v1</code>
+            <code className="text-sm text-white">https://myloswc.vercel.app/api/v1</code>
           </div>
           <div>
             <p className="text-[11px] font-bold tracking-widest text-muted mb-1">
@@ -326,17 +326,17 @@ export default function DocsPage() {
           </p>
           <pre className="rounded-lg bg-black/40 border border-border p-4 overflow-x-auto text-[11.5px] leading-relaxed text-[#b9c4c2]">
             <code>{`# 1. Get live fixtures
-curl https://fieldcall.vercel.app/api/v1/fixtures \\
+curl https://myloswc.vercel.app/api/v1/fixtures \\
   -H "x-api-key: fc_hackathon_judge_key"
 
 # 2. Get match analysis
-curl -X POST https://fieldcall.vercel.app/api/v1/analyze \\
+curl -X POST https://myloswc.vercel.app/api/v1/analyze \\
   -H "x-api-key: fc_hackathon_judge_key" \\
   -H "Content-Type: application/json" \\
   -d '{"question":"Who will win?","fixtureId":18209181}'
 
 # 3. Verify on-chain
-curl https://fieldcall.vercel.app/api/v1/verify/18209181 \\
+curl https://myloswc.vercel.app/api/v1/verify/18209181 \\
   -H "x-api-key: fc_hackathon_judge_key"`}</code>
           </pre>
         </div>
@@ -392,7 +392,8 @@ curl https://fieldcall.vercel.app/api/v1/verify/18209181 \\
               ['AI', 'Groq Llama 3.3 70B'],
               ['On-chain', 'Solana mainnet via Anchor CPI'],
               ['Verification', "TxLINE's validateStat Merkle proof"],
-              ['Billing', 'Metera x402 protocol'],
+              ['Billing', 'Per-question in USDC · $0.017/analysis'],
+              ['MYLOS Score', 'Real-time game intensity (0–10) calculated from TxLINE live data'],
             ].map(([label, value]) => (
               <div key={label} className="flex items-start gap-3">
                 <span className="w-24 flex-shrink-0 text-[11px] font-bold tracking-widest text-muted">
@@ -419,17 +420,13 @@ curl https://fieldcall.vercel.app/api/v1/verify/18209181 \\
 
         <div className="mt-10 rounded-2xl border border-teal/20 bg-teal-dim p-5">
           <p className="text-sm text-[#b9c4c2] leading-relaxed">
-            Mylos is built on{' '}
-            <a href="https://metera.xyz" target="_blank" rel="noopener noreferrer" className="text-teal hover:underline">
-              Metera
-            </a>{' '}
-            — billing infrastructure for AI agents on Solana. Any API can charge
-            agents automatically in USDC via the x402 protocol.
+            Every answer is billed per-question in USDC, paid directly wallet-to-wallet
+            on Solana via Phantom — no middleman billing layer, no subscriptions.
           </p>
         </div>
 
         <p className="mt-12 text-xs text-muted">
-          mylos.xyz · World Cup 2026 · Powered by TxLINE + Groq + Solana
+          myloswc.vercel.app · World Cup 2026 · Powered by TxLINE + Groq + Solana
         </p>
       </div>
         </div>

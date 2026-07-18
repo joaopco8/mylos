@@ -219,7 +219,7 @@ export default function Sidebar({
         <RailButton href="/docs" label="API Docs">
           <IconDocs />
         </RailButton>
-        <RailButton href="https://github.com/joaopco8/meteramarket" target="_blank" label="GitHub">
+        <RailButton href="https://github.com/joaopco8/mylos" target="_blank" label="GitHub">
           <IconGitHub />
         </RailButton>
         <RailButton href="https://t.me/myloswc_bot" target="_blank" label="MYLOS Bot">
@@ -393,7 +393,7 @@ export default function Sidebar({
             API Docs
           </a>
           <a
-            href="https://github.com/joaopco8/meteramarket"
+            href="https://github.com/joaopco8/mylos"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted hover:text-text hover:bg-card transition-colors cursor-pointer"

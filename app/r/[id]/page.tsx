@@ -165,7 +165,7 @@ export default async function SharePage({ params, searchParams }: Props) {
             Ask my own question
           </a>
           <p className="text-xs text-muted mt-3">
-            mylos.xyz · Powered by TxLINE + Groq
+            myloswc.vercel.app · Powered by TxLINE + Groq
           </p>
         </div>
       </div>
