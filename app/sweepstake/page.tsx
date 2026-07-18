@@ -10,6 +10,7 @@ import {
   rememberIdentity,
 } from '@/lib/sweepstake'
 import AppShell from '@/components/AppShell'
+import { sessionKeyFor } from '@/components/SweepstakeJoinGate'
 
 type View = 'landing' | 'create' | 'result'
 
@@ -69,6 +70,15 @@ export default function SweepstakePage() {
 
       rememberSweepstake({ id: data.id, name: data.name })
       rememberIdentity(data.id, yourName.trim())
+      // Rescue seed for /sweepstake/[id]'s server-side lookup, which can
+      // land on a different instance than this request and miss — see
+      // SweepstakeJoinGate.tsx.
+      try {
+        sessionStorage.setItem(sessionKeyFor(data.id), JSON.stringify(data))
+      } catch {
+        // sessionStorage unavailable — worst case the share page falls
+        // back to its own "not found" state, same as before this fix
+      }
       setCreated(data)
       setView('result')
     } catch (e: any) {

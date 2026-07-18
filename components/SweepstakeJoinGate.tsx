@@ -11,11 +11,18 @@ import SweepstakeView from './SweepstakeView'
 import AppShell from './AppShell'
 
 interface Props {
-  initial: Sweepstake
+  initial: Sweepstake | null
+  id: string
 }
 
-export default function SweepstakeJoinGate({ initial }: Props) {
-  const [sweepstake, setSweepstake] = useState(initial)
+// Key the create flow stashes the freshly-made sweepstake under before
+// navigating here — see app/sweepstake/page.tsx.
+export function sessionKeyFor(id: string) {
+  return `mylos_sweepstake_data_${id}`
+}
+
+export default function SweepstakeJoinGate({ initial, id }: Props) {
+  const [sweepstake, setSweepstake] = useState<Sweepstake | null>(initial)
   const [identity, setIdentity] = useState<string | null>(null)
   const [showJoinForm, setShowJoinForm] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -23,13 +30,27 @@ export default function SweepstakeJoinGate({ initial }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (sweepstake) return
+    // Server-side store lookup missed (different instance than whatever
+    // created it) — if this browser is the one that just created it,
+    // the full object is sitting in sessionStorage from that flow.
+    try {
+      const rescued = sessionStorage.getItem(sessionKeyFor(id))
+      if (rescued) setSweepstake(JSON.parse(rescued))
+    } catch {
+      // ignore — falls through to the "not found" state below
+    }
+  }, [sweepstake, id])
+
+  useEffect(() => {
+    if (!sweepstake) return
     rememberSweepstake({ id: sweepstake.id, name: sweepstake.name })
     setIdentity(getRememberedIdentity(sweepstake.id))
-  }, [sweepstake.id, sweepstake.name])
+  }, [sweepstake])
 
   const join = async () => {
     const name = nameInput.trim()
-    if (!name) return
+    if (!name || !sweepstake) return
     setJoining(true)
     setError(null)
     try {
@@ -45,11 +66,37 @@ export default function SweepstakeJoinGate({ initial }: Props) {
       setIdentity(name)
       setSweepstake(data)
       setShowJoinForm(false)
+      try {
+        sessionStorage.setItem(sessionKeyFor(sweepstake.id), JSON.stringify(data))
+      } catch {
+        // best-effort rescue seed only
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {
       setJoining(false)
     }
+  }
+
+  if (!sweepstake) {
+    return (
+      <AppShell>
+        <div className="min-h-full flex items-center justify-center p-4">
+          <div className="w-full max-w-md text-center">
+            <p className="text-sm text-muted mb-4">
+              Couldn&apos;t find this sweepstake. The link might be wrong, or it
+              was created on a different device/session.
+            </p>
+            <a
+              href="/sweepstake"
+              className="inline-flex items-center gap-2 bg-teal text-bg font-bold px-5 py-2.5 rounded-xl hover:bg-teal-bright active:scale-95 transition-all text-sm"
+            >
+              Create your own sweepstake
+            </a>
+          </div>
+        </div>
+      </AppShell>
+    )
   }
 
   const isParticipant = identity && sweepstake.participants.some(p => p.name === identity)

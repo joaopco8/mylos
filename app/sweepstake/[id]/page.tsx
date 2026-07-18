@@ -1,5 +1,4 @@
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import { Sweepstake } from '@/lib/sweepstake'
 import { getSweepstakeEntry } from '@/lib/sweepstakeStore'
 import SweepstakeJoinGate from '@/components/SweepstakeJoinGate'
@@ -41,7 +40,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SweepstakePage({ params }: Props) {
   const { id } = await params
   const sweepstake = await getSweepstakeData(id)
-  if (!sweepstake) notFound()
 
-  return <SweepstakeJoinGate initial={sweepstake} />
+  // Not calling notFound() here even when the server-side store lookup
+  // misses: sweepstakeStore.ts is an in-memory Map, which the API route
+  // that created this entry and this page can land in different
+  // module/function instances that don't share memory (confirmed with
+  // /r/[id] earlier — same id, API found it, page didn't). Right after
+  // creating your own group, the browser already has the full object in
+  // hand from the create call — SweepstakeJoinGate rescues that from
+  // sessionStorage when the server lookup comes up empty, so only a
+  // genuinely-unknown id (or a different device) ends up as "not found".
+  return <SweepstakeJoinGate initial={sweepstake} id={id} />
 }
