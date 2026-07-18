@@ -469,6 +469,24 @@ function getMockFixtures(): Fixture[] {
       awayFlag: '🇦🇷',
       startTime: '2026-07-15T19:00:00Z',
     },
+    // Bronze medal match, confirmed via the official TxLINE schedule docs.
+    {
+      fixtureId: 18257865,
+      homeTeam: 'France',
+      awayTeam: 'England',
+      homeFlag: '🇫🇷',
+      awayFlag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+      startTime: '2026-07-18T21:00:00Z',
+    },
+    // Final.
+    {
+      fixtureId: 18257739,
+      homeTeam: 'Spain',
+      awayTeam: 'Argentina',
+      homeFlag: '🇪🇸',
+      awayFlag: '🇦🇷',
+      startTime: '2026-07-19T19:00:00Z',
+    },
   ]
 
   return base.map(f => ({ ...f, ...deriveLiveStatus(f.startTime) }))
