@@ -105,16 +105,16 @@ export default function SweepstakeView({ sweepstake }: Props) {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-x-auto mb-4">
-        <table className="w-full min-w-[420px] text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-[10px] text-muted uppercase tracking-wider border-b border-border">
               <th className="text-left px-3 py-2 font-medium">#</th>
               <th className="text-left px-3 py-2 font-medium">Name</th>
               <th className="text-left px-3 py-2 font-medium">Team</th>
-              <th className="text-center px-2 py-2 font-medium">P</th>
-              <th className="text-center px-2 py-2 font-medium">W</th>
-              <th className="text-center px-2 py-2 font-medium">D</th>
-              <th className="text-center px-2 py-2 font-medium">L</th>
+              <th className="hidden sm:table-cell text-center px-2 py-2 font-medium">P</th>
+              <th className="hidden sm:table-cell text-center px-2 py-2 font-medium">W</th>
+              <th className="hidden sm:table-cell text-center px-2 py-2 font-medium">D</th>
+              <th className="hidden sm:table-cell text-center px-2 py-2 font-medium">L</th>
               <th className="text-right px-3 py-2 font-medium">Pts</th>
             </tr>
           </thead>
@@ -123,13 +123,13 @@ export default function SweepstakeView({ sweepstake }: Props) {
               <tr key={s.name} className="border-b border-border last:border-0">
                 <td className="px-3 py-2 text-muted">{i + 1}</td>
                 <td className="px-3 py-2 text-text font-medium">{s.name}</td>
-                <td className="px-3 py-2 text-muted">
+                <td className="px-3 py-2 text-muted whitespace-nowrap">
                   {s.team.flag} {s.team.name}
                 </td>
-                <td className="px-2 py-2 text-center text-muted">{s.played}</td>
-                <td className="px-2 py-2 text-center text-muted">{s.wins}</td>
-                <td className="px-2 py-2 text-center text-muted">{s.draws}</td>
-                <td className="px-2 py-2 text-center text-muted">{s.losses}</td>
+                <td className="hidden sm:table-cell px-2 py-2 text-center text-muted">{s.played}</td>
+                <td className="hidden sm:table-cell px-2 py-2 text-center text-muted">{s.wins}</td>
+                <td className="hidden sm:table-cell px-2 py-2 text-center text-muted">{s.draws}</td>
+                <td className="hidden sm:table-cell px-2 py-2 text-center text-muted">{s.losses}</td>
                 <td className="px-3 py-2 text-right text-teal font-bold">{s.points}</td>
               </tr>
             ))}
