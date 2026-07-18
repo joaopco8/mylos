@@ -52,13 +52,27 @@ export interface VerifyResult {
   message: string
 }
 
+// The fee-payer keypair only needs to sign a simulated (never broadcast)
+// transaction, but Solana still requires that account to actually exist
+// on-chain (rent-exempt, touched at least once) for simulation to work —
+// a fresh zero-balance keypair fails with AccountNotFound. Reads from an
+// env var first (production, where the gitignored wallet file doesn't
+// exist), falling back to the local file for dev.
+function loadKeypair(): Keypair {
+  const envKey = process.env.TXLINE_WALLET_SECRET_KEY
+  if (envKey) {
+    return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(envKey)))
+  }
+  const keypairPath = path.join(process.cwd(), 'scripts', 'txline-wallet.json')
+  return Keypair.fromSecretKey(
+    Uint8Array.from(JSON.parse(fs.readFileSync(keypairPath, 'utf-8')))
+  )
+}
+
 export async function verifyStatOnChain(fixtureId: number, statKey: number): Promise<VerifyResult> {
   const { seq, validation } = await fetchProof(fixtureId, statKey)
 
-  const keypairPath = path.join(process.cwd(), 'scripts', 'txline-wallet.json')
-  const keypair = Keypair.fromSecretKey(
-    Uint8Array.from(JSON.parse(fs.readFileSync(keypairPath, 'utf-8')))
-  )
+  const keypair = loadKeypair()
   // AnchorProvider only needs this shape to build the instruction below;
   // the actual transaction is signed manually further down, so the
   // signing methods here are never invoked.

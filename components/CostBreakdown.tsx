@@ -80,17 +80,18 @@ export default function CostBreakdown({
   const [verifying, setVerifying] = useState(false)
   const [verified, setVerified] = useState<boolean | null>(null)
 
-  // TEMPORARY front-end-only stub, per explicit request: the real
-  // /api/verify/[fixtureId] call needs a funded Solana wallet file that
-  // isn't available in production (see lib/txlineVerify.ts). Until that's
-  // resolved, this just shows the "verified" state without calling it.
-  // Swap back to the real fetch below once the wallet story is sorted.
   const verifyOnChain = async () => {
     if (!fixtureId) return
     setVerifying(true)
-    await new Promise(r => setTimeout(r, 600))
-    setVerified(true)
-    setVerifying(false)
+    try {
+      const res = await fetch(`/api/verify/${fixtureId}`)
+      const data = await res.json()
+      setVerified(data.isValid)
+    } catch {
+      setVerified(false)
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const shareUrl =
