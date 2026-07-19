@@ -496,8 +496,20 @@ function getMockFixtures(): Fixture[] {
 // matches sorted by kickoff time descending), with anything not yet
 // played pushed to the end (soonest-upcoming first) since it hasn't
 // "happened" yet and so has no place in a recency ordering.
+// The World Cup Final — pinned to the top of the list while it's still
+// upcoming (instead of the usual "upcoming sorts last"), since it's the
+// one match everyone cares about regardless of kickoff time. Once it
+// goes live it already sorts first on its own; once it's finished it
+// falls back to normal recency sorting (still near the top, being the
+// most recent match played).
+const FINAL_FIXTURE_ID = 18257739
+
 function sortFixtures(fixtures: Fixture[]): Fixture[] {
-  const rank = (f: Fixture) => (f.status === 'live' ? 0 : f.status === 'finished' ? 1 : 2)
+  const rank = (f: Fixture) => {
+    if (f.status === 'live') return 0
+    if (f.fixtureId === FINAL_FIXTURE_ID && f.status === 'upcoming') return 0.5
+    return f.status === 'finished' ? 1 : 2
+  }
   return [...fixtures].sort((a, b) => {
     const rankDiff = rank(a) - rank(b)
     if (rankDiff !== 0) return rankDiff
