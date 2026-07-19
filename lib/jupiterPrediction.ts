@@ -64,7 +64,11 @@ function toPredictionMarket(event: JupiterEventRaw, m: JupiterMarketRaw): Predic
     yesPrice: toMicroDollars(m.pricing?.buyYesPriceUsd, 500_000),
     noPrice: toMicroDollars(m.pricing?.buyNoPriceUsd, 500_000),
     volume: toMicroDollars(m.pricing?.volume, 0),
-    url: `https://jup.ag/prediction/event/${event.metadata?.slug || event.eventId}`,
+    // Verified live: jup.ag/prediction/{eventId} renders the real event
+    // page; both /prediction/event/{slug} and /prediction/{slug} render
+    // Jupiter's own "No event found" — the slug isn't a valid path segment
+    // on their frontend at all, only the raw eventId is.
+    url: `https://jup.ag/prediction/${event.eventId}`,
   }
 }
 
