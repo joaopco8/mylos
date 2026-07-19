@@ -3,7 +3,6 @@
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { useEffect, useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
-import { getAssociatedTokenAddressSync } from '@solana/spl-token'
 
 const USDC_MINT = new PublicKey(
   'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
@@ -25,19 +24,26 @@ export function useWalletBalance() {
 
     async function fetchBalance() {
       setLoading(true)
-      const ata = getAssociatedTokenAddressSync(USDC_MINT, publicKey!)
       console.log('[Balance] Wallet:', publicKey!.toBase58())
-      console.log('[Balance] ATA:', ata.toBase58())
       try {
-        const info = await connection.getTokenAccountBalance(ata)
-        console.log('[Balance] Raw:', info.value)
-        if (!cancelled) setBalance(info.value.uiAmount || 0)
+        // Querying a single hardcoded ATA under-counts wallets that hold
+        // USDC across more than one token account for the same mint (e.g.
+        // an extra non-ATA account created by an exchange withdrawal or an
+        // older dApp) — Phantom's own balance sums all of them, so this
+        // needs to as well instead of assuming exactly one account exists.
+        const accounts = await connection.getParsedTokenAccountsByOwner(
+          publicKey!,
+          { mint: USDC_MINT }
+        )
+        console.log('[Balance] Token accounts found:', accounts.value.length)
+        const total = accounts.value.reduce((sum, { account }) => {
+          const amount = account.data.parsed?.info?.tokenAmount?.uiAmount || 0
+          return sum + amount
+        }, 0)
+        console.log('[Balance] Total USDC:', total)
+        if (!cancelled) setBalance(total)
       } catch (e: any) {
-        // A missing ATA (wallet has never held USDC) is a real 0 balance.
-        // Anything else (rate limit, network error) is not — log it instead
-        // of silently showing $0.00 for what might just be an RPC hiccup.
-        const isMissingAccount = e.message?.includes('could not find account')
-        console.error('[Balance] Error:', e.message, isMissingAccount ? '(no USDC account yet — real $0)' : '(fetch failed, not a confirmed $0)')
+        console.error('[Balance] Error:', e.message)
         if (!cancelled) setBalance(0)
       } finally {
         if (!cancelled) setLoading(false)
