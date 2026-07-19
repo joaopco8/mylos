@@ -53,7 +53,6 @@ export async function payPerQuestion(params: {
   // Amount in USDC lamports (6 decimals)
   const amountLamports = Math.floor(amountUsdc * 1_000_000)
 
-  // Get ATAs
   const fromAta = await getAssociatedTokenAddress(
     USDC_MINT, fromWallet
   )
@@ -61,18 +60,33 @@ export async function payPerQuestion(params: {
     USDC_MINT, providerWallet
   )
 
-  // Check balance
-  try {
-    const balance = await connection.getTokenAccountBalance(fromAta)
-    const uiAmount = balance.value.uiAmount || 0
-    if (uiAmount < amountUsdc) {
-      throw new Error(
-        `Insufficient USDC balance: $${uiAmount.toFixed(4)} available, $${amountUsdc} needed`
-      )
-    }
-  } catch (e: any) {
-    if (e.message?.includes('Insufficient')) throw e
+  // A wallet's USDC can be split across more than the canonical ATA (e.g.
+  // an extra non-ATA account from an exchange withdrawal or an older
+  // dApp) — Phantom's displayed balance sums all of them, so checking
+  // (and later transferring from) only fromAta could wrongly reject a
+  // payment the wallet can actually afford. Canonical ATA sorted first so
+  // the common case — one account, enough funds — needs only one
+  // transfer instruction, same as before.
+  const accounts = await connection.getParsedTokenAccountsByOwner(
+    fromWallet, { mint: USDC_MINT }
+  )
+  if (accounts.value.length === 0) {
     throw new Error('No USDC balance found in wallet')
+  }
+  const sourceAccounts = [...accounts.value].sort((a, b) => {
+    if (a.pubkey.equals(fromAta)) return -1
+    if (b.pubkey.equals(fromAta)) return 1
+    return 0
+  })
+
+  const totalAvailable = sourceAccounts.reduce(
+    (sum, { account }) => sum + (account.data.parsed?.info?.tokenAmount?.uiAmount || 0),
+    0
+  )
+  if (totalAvailable < amountUsdc) {
+    throw new Error(
+      `Insufficient USDC balance: $${totalAvailable.toFixed(4)} available, $${amountUsdc} needed`
+    )
   }
 
   const tx = new Transaction()
@@ -97,16 +111,19 @@ export async function payPerQuestion(params: {
     )
   }
 
-  // Build transaction
-  const transferIx = createTransferInstruction(
-    fromAta,
-    toAta,
-    fromWallet,
-    amountLamports,
-    [],
-    TOKEN_PROGRAM_ID
-  )
-  tx.add(transferIx)
+  // Pull from as many of the payer's own USDC accounts as needed to cover
+  // the amount — one transfer instruction per source account, all in this
+  // same transaction. A single wallet signature authorizes all of them
+  // since they share the same owner. Usually just the canonical ATA.
+  let remaining = amountLamports
+  for (const { pubkey, account } of sourceAccounts) {
+    if (remaining <= 0) break
+    const rawAmount = Number(account.data.parsed?.info?.tokenAmount?.amount || 0)
+    if (rawAmount <= 0) continue
+    const take = Math.min(rawAmount, remaining)
+    tx.add(createTransferInstruction(pubkey, toAta, fromWallet, take, [], TOKEN_PROGRAM_ID))
+    remaining -= take
+  }
 
   const { blockhash } = await connection.getLatestBlockhash()
   tx.recentBlockhash = blockhash
@@ -122,19 +139,4 @@ export async function payPerQuestion(params: {
   await connection.confirmTransaction(txHash, 'confirmed')
 
   return { txHash, amountUsdc, paid: true }
-}
-
-export async function getUsdcBalance(
-  walletAddress: PublicKey
-): Promise<number> {
-  const connection = new Connection(RPC_URL, 'confirmed')
-  try {
-    const ata = await getAssociatedTokenAddress(
-      USDC_MINT, walletAddress
-    )
-    const balance = await connection.getTokenAccountBalance(ata)
-    return balance.value.uiAmount || 0
-  } catch {
-    return 0
-  }
 }
