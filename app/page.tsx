@@ -146,12 +146,11 @@ export default function Home() {
       setBetMarkets([])
       return
     }
-    const lastMsg = messages[messages.length - 1]
-    if (lastMsg?.role !== 'assistant' || !lastMsg.response?.isPrediction) {
-      setBetMarkets([])
-      return
-    }
 
+    // lib/jupiterPrediction.ts's getWorldCupMarkets() is server-only (it
+    // reads JUPITER_API_KEY directly, never NEXT_PUBLIC_) — this fetches
+    // the /api/prediction-markets route instead of importing it, so the
+    // key never ends up in client-side JS.
     let cancelled = false
     fetch(
       `/api/prediction-markets?homeTeam=${encodeURIComponent(selectedFixture.homeTeam)}&awayTeam=${encodeURIComponent(selectedFixture.awayTeam)}`
@@ -165,7 +164,7 @@ export default function Home() {
     return () => {
       cancelled = true
     }
-  }, [messages, selectedFixture])
+  }, [selectedFixture?.fixtureId])
 
   // Restores the last saved chat session (and the fixture it was about) on
   // initial load only. This depends on `fixtures` because the fixture list
@@ -565,9 +564,9 @@ export default function Home() {
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
                 {betMarkets.length > 0 && (
-                  <div>
+                  <div id="bet-section">
                     <div className="text-[10px] text-muted mb-2 uppercase tracking-wider">
-                      Related prediction markets
+                      Prediction markets for this match
                     </div>
                     {betMarkets.map(m => (
                       <BetCard key={m.id} market={m} />

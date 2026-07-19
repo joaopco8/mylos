@@ -150,6 +150,12 @@ function RailButton({
   )
 }
 
+function scrollToBetSection() {
+  setTimeout(() => {
+    document.getElementById('bet-section')?.scrollIntoView({ behavior: 'smooth' })
+  }, 300)
+}
+
 export default function Sidebar({
   fixtures,
   selectedFixture,
@@ -282,33 +288,47 @@ export default function Sidebar({
                 const selected = selectedFixture?.fixtureId === f.fixtureId
                 const isLive = f.status === 'live'
                 return (
-                  <button
-                    key={f.fixtureId}
-                    onClick={() => {
-                      onSelectFixture(f)
-                      onClose()
-                    }}
-                    className={`
-                      w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg
-                      text-[12px] transition-all text-left cursor-pointer active:scale-[0.98]
-                      ${selected
-                        ? 'bg-teal-dim text-text'
-                        : 'text-muted hover:text-teal hover:bg-card'}
-                    `}
-                  >
-                    <span className="truncate flex-1">
-                      {f.homeTeam} × {f.awayTeam}
-                    </span>
-                    {isLive ? (
-                      <span className="text-[10px] font-bold text-red-400">
-                        {f.minute ? `${f.minute}'` : 'LIVE'}
+                  <div key={f.fixtureId} className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        onSelectFixture(f)
+                        onClose()
+                      }}
+                      className={`
+                        flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 rounded-lg
+                        text-[12px] transition-all text-left cursor-pointer active:scale-[0.98]
+                        ${selected
+                          ? 'bg-teal-dim text-text'
+                          : 'text-muted hover:text-teal hover:bg-card'}
+                      `}
+                    >
+                      <span className="truncate flex-1">
+                        {f.homeTeam} × {f.awayTeam}
                       </span>
-                    ) : (
-                      <span className="text-[10px] text-muted/60">
-                        {f.status === 'finished' ? 'ended' : 'soon'}
-                      </span>
+                      {isLive ? (
+                        <span className="text-[10px] font-bold text-red-400">
+                          {f.minute ? `${f.minute}'` : 'LIVE'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted/60">
+                          {f.status === 'finished' ? 'ended' : 'soon'}
+                        </span>
+                      )}
+                    </button>
+                    {isLive && (
+                      <button
+                        onClick={() => {
+                          onSelectFixture(f)
+                          onClose()
+                          scrollToBetSection()
+                        }}
+                        title="Bet on this match"
+                        className="w-6 h-6 flex-shrink-0 rounded flex items-center justify-center text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 active:scale-95 transition-all cursor-pointer"
+                      >
+                        $
+                      </button>
                     )}
-                  </button>
+                  </div>
                 )
               })}
             </div>
