@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
 import { PredictionMarket } from '@/lib/jupiterPrediction'
+import { saveBetLocally } from '@/lib/localBets'
 
 interface Props {
   market: PredictionMarket
@@ -61,6 +62,15 @@ export default function BetCard({ market }: Props) {
       const signature = await connection.sendRawTransaction(signed.serialize())
       await connection.confirmTransaction(signature, 'confirmed')
       setTxHash(signature)
+      saveBetLocally({
+        marketId: market.id,
+        marketTitle: market.teamName ? `Will ${market.teamName} win?` : market.title,
+        outcome: isYes ? 'yes' : 'no',
+        amountUsdc,
+        odds: isYes ? market.yesPrice : market.noPrice,
+        txHash: signature,
+        marketUrl: market.url,
+      })
     } catch (e: any) {
       setError(e.message)
     } finally {

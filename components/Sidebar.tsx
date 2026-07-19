@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import WalletButton from './WalletButton'
 import { useWalletBalance } from '@/hooks/useWalletBalance'
 import { ChatSession } from '@/lib/chatStorage'
+import { getLocalBets } from '@/lib/localBets'
 
 interface Fixture {
   fixtureId: number
@@ -77,6 +78,16 @@ function IconTelegram() {
   return (
     <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor">
       <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.8 13.6l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.959z" />
+    </svg>
+  )
+}
+
+function IconTarget() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="6" />
+      <circle cx="8" cy="8" r="3" />
+      <circle cx="8" cy="8" r="0.5" fill="currentColor" />
     </svg>
   )
 }
@@ -178,6 +189,11 @@ export default function Sidebar({
   const visibleFixtures = showAllFixtures ? fixtures : fixtures.slice(0, FIXTURES_PREVIEW_COUNT)
   const hasMoreFixtures = fixtures.length > FIXTURES_PREVIEW_COUNT
 
+  const [openBetsCount, setOpenBetsCount] = useState(0)
+  useEffect(() => {
+    setOpenBetsCount(getLocalBets().filter(b => b.status === 'open').length)
+  }, [])
+
   return (
     <>
       {/* mobile overlay */}
@@ -219,6 +235,14 @@ export default function Sidebar({
           <IconChatBubble />
         </RailButton>
         <div className="flex-1" />
+        <div className="relative">
+          <RailButton href="/bets" label="My Bets">
+            <IconTarget />
+          </RailButton>
+          {openBetsCount > 0 && (
+            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-teal" />
+          )}
+        </div>
         <RailButton href="/sweepstake" label="Sweepstake">
           <IconTrophy />
         </RailButton>
@@ -398,6 +422,18 @@ export default function Sidebar({
           <span className="px-3 py-1 text-[10px] text-muted uppercase tracking-wider font-medium block">
             Resources
           </span>
+          <a
+            href="/bets"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted hover:text-text hover:bg-card transition-colors cursor-pointer"
+          >
+            <IconTarget />
+            My Bets
+            {openBetsCount > 0 && (
+              <span className="ml-auto text-[10px] font-bold bg-teal text-bg px-1.5 py-0.5 rounded-full">
+                {openBetsCount}
+              </span>
+            )}
+          </a>
           <a
             href="/sweepstake"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted hover:text-text hover:bg-card transition-colors cursor-pointer"
