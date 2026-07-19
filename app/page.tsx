@@ -18,6 +18,8 @@ import {
 import { payPerQuestion } from '@/lib/payment'
 import { calculateMylosScore, MylosScoreResult } from '@/lib/mylosScore'
 import MylosScore from '@/components/MylosScore'
+import { PredictionMarket } from '@/lib/jupiterPrediction'
+import BetCard from '@/components/BetCard'
 import { nanoid } from 'nanoid'
 
 // Off by default until PROVIDER_WALLET_ADDRESS in lib/payment.ts is a real
@@ -69,6 +71,7 @@ export default function Home() {
   const [paying, setPaying] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [mylosScore, setMylosScore] = useState<MylosScoreResult | null>(null)
+  const [betMarkets, setBetMarkets] = useState<PredictionMarket[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sessionRestored = useRef(false)
   const { connected, publicKey, signTransaction } = useWallet()
@@ -137,6 +140,32 @@ export default function Home() {
     const interval = setInterval(pollScore, 60000)
     return () => clearInterval(interval)
   }, [selectedFixture?.fixtureId, selectedFixture?.status])
+
+  useEffect(() => {
+    if (!selectedFixture) {
+      setBetMarkets([])
+      return
+    }
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.role !== 'assistant' || !lastMsg.response?.isPrediction) {
+      setBetMarkets([])
+      return
+    }
+
+    let cancelled = false
+    fetch(
+      `/api/prediction-markets?homeTeam=${encodeURIComponent(selectedFixture.homeTeam)}&awayTeam=${encodeURIComponent(selectedFixture.awayTeam)}`
+    )
+      .then(res => res.json())
+      .then(data => {
+        if (!cancelled) setBetMarkets(data.markets || [])
+      })
+      .catch(e => console.error('[Jupiter] Fetch failed:', e))
+
+    return () => {
+      cancelled = true
+    }
+  }, [messages, selectedFixture])
 
   // Restores the last saved chat session (and the fixture it was about) on
   // initial load only. This depends on `fixtures` because the fixture list
@@ -535,6 +564,16 @@ export default function Home() {
                 {messages.map(msg => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
+                {betMarkets.length > 0 && (
+                  <div>
+                    <div className="text-[10px] text-muted mb-2 uppercase tracking-wider">
+                      Related prediction markets
+                    </div>
+                    {betMarkets.map(m => (
+                      <BetCard key={m.id} market={m} />
+                    ))}
+                  </div>
+                )}
                 {loading && <ThinkingIndicator isGeneral={!selectedFixture} />}
                 <div ref={messagesEndRef} />
               </div>
