@@ -36,6 +36,8 @@ export function saveBetLocally(bet: {
     pnlUsd: 0,
     payoutUsd: 0,
     claimedUsd: 0,
+    odds: bet.odds,
+    currentOdds: bet.odds,
     status: 'open',
     placedAt: new Date().toISOString(),
     marketUrl: bet.marketUrl,

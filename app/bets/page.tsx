@@ -144,6 +144,15 @@ export default function BetsPage() {
                     <span className="text-text font-medium">${bet.amountUsdc.toFixed(2)}</span>
                   </div>
                   <div>
+                    <span className="text-muted">Odds </span>
+                    <span className="text-text font-medium">
+                      {bet.odds > 0 ? `${(bet.odds * 100).toFixed(0)}¢` : '—'}
+                      {bet.status === 'open' && bet.currentOdds > 0 && bet.currentOdds !== bet.odds && (
+                        <span className="text-muted font-normal"> → {(bet.currentOdds * 100).toFixed(0)}¢ now</span>
+                      )}
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-muted">
                       {bet.status === 'won' ? 'Payout ' : bet.status === 'lost' ? 'Result ' : 'Value now '}
                     </span>

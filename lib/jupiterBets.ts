@@ -32,6 +32,10 @@ export interface Bet {
   pnlUsd: number
   payoutUsd: number
   claimedUsd: number
+  /** Average entry price per contract, 0-1 (e.g. 0.42 = 42¢) */
+  odds: number
+  /** Current market price per contract, 0-1; only meaningful while open */
+  currentOdds: number
   status: 'open' | 'won' | 'lost'
   placedAt: string
   settledAt?: string
@@ -49,8 +53,11 @@ interface JupiterPositionRaw {
   claimedUsd?: string | number
   claimable?: boolean
   claimed?: boolean
-  openedAt?: string
-  settlementDate?: string
+  avgPriceUsd?: string | number
+  markPriceUsd?: string | number
+  // Unix seconds, verified against a live position payload — NOT an ISO string
+  openedAt?: number | string
+  settlementDate?: number | string
   marketMetadata?: {
     title?: string
     status?: string
@@ -65,6 +72,13 @@ interface JupiterPositionRaw {
 function toDollars(raw: string | number | null | undefined): number {
   if (raw === null || raw === undefined) return 0
   return Number(raw) / 1_000_000
+}
+
+function toIso(unixSeconds: number | string | undefined): string | undefined {
+  if (unixSeconds === undefined || unixSeconds === null) return undefined
+  const n = Number(unixSeconds)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return new Date(n * 1000).toISOString()
 }
 
 function toBet(p: JupiterPositionRaw): Bet {
@@ -83,9 +97,11 @@ function toBet(p: JupiterPositionRaw): Bet {
     pnlUsd: toDollars(p.pnlUsd),
     payoutUsd: toDollars(p.payoutUsd),
     claimedUsd: toDollars(p.claimedUsd),
+    odds: toDollars(p.avgPriceUsd),
+    currentOdds: toDollars(p.markPriceUsd),
     status,
-    placedAt: p.openedAt || new Date().toISOString(),
-    settledAt: isResolved ? p.settlementDate : undefined,
+    placedAt: toIso(p.openedAt) || new Date().toISOString(),
+    settledAt: isResolved ? toIso(p.settlementDate) : undefined,
     marketUrl: eventId ? `https://jup.ag/prediction/${eventId}` : 'https://jup.ag/prediction',
   }
 }
@@ -93,7 +109,8 @@ function toBet(p: JupiterPositionRaw): Bet {
 export async function getBets(ownerPubkey: string): Promise<Bet[]> {
   try {
     const res = await fetch(
-      `${JUPITER_API}/positions?ownerPubkey=${encodeURIComponent(ownerPubkey)}&end=200`,
+      // Jupiter caps the range at 100 items — end=200 gets a 400 back
+      `${JUPITER_API}/positions?ownerPubkey=${encodeURIComponent(ownerPubkey)}&end=100`,
       { headers: getHeaders() }
     )
     if (!res.ok) {
